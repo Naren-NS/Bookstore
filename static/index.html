@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bookstore</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        h1 {
+            color: #333;
+        }
+        form {
+            margin-bottom: 20px;
+        }
+        input[type="text"], input[type="hidden"] {
+            padding: 10px;
+            margin-right: 10px;
+            margin-bottom: 10px;
+            width: calc(100% - 22px);
+            max-width: 300px;
+        }
+        button {
+            padding: 10px 15px;
+            cursor: pointer;
+        }
+        .book-list {
+            margin-top: 20px;
+        }
+        .book {
+            background: white;
+            padding: 15px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+        }
+        .book button {
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Bookstore</h1>
+    <form id="book-form">
+        <input type="hidden" id="book-id">
+        <input type="text" id="name" placeholder="Name" required>
+        <input type="text" id="author" placeholder="Author" required>
+        <input type="text" id="publication" placeholder="Publication" required>
+        <button type="submit">Add Book</button>
+    </form>
+    <div class="book-list" id="book-list"></div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const bookForm = document.getElementById('book-form');
+            const bookList = document.getElementById('book-list');
+            const bookIdInput = document.getElementById('book-id');
+            const nameInput = document.getElementById('name');
+            const authorInput = document.getElementById('author');
+            const publicationInput = document.getElementById('publication');
+
+            // Fetch and display books
+            function fetchBooks() {
+                fetch('http://localhost:9010/book/')
+                    .then(response => response.json())
+                    .then(data => {
+                        bookList.innerHTML = '';
+                        data.forEach(book => {
+                            const bookDiv = document.createElement('div');
+                            bookDiv.className = 'book';
+                            bookDiv.innerHTML = `
+                                <h3>${book.name}</h3>
+                                <p>Author: ${book.author}</p>
+                                <p>Publication: ${book.publication}</p>
+                                <button onclick="editBook(${book.ID})">Edit</button>
+                                <button onclick="deleteBook(${book.ID})">Delete</button>
+                            `;
+                            bookList.appendChild(bookDiv);
+                        });
+                    })
+                    .catch(error => console.error('Error fetching books:', error));
+            }
+
+            // Add or update a book
+            bookForm.addEventListener('submit', event => {
+                event.preventDefault();
+                const id = bookIdInput.value;
+                const name = nameInput.value;
+                const author = authorInput.value;
+                const publication = publicationInput.value;
+                const method = id ? 'PUT' : 'POST';
+                const url = id ? `http://localhost:9010/book/${id}` : 'http://localhost:9010/book/';
+
+                fetch(url, {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ name, author, publication }),
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        bookForm.reset();
+                        fetchBooks();
+                    })
+                    .catch(error => console.error('Error adding/updating book:', error));
+            });
+
+            // Edit a book
+            window.editBook = function(id) {
+                fetch(`http://localhost:9010/book/${id}`)
+                    .then(response => response.json())
+                    .then(book => {
+                        bookIdInput.value = book.ID;
+                        nameInput.value = book.name;
+                        authorInput.value = book.author;
+                        publicationInput.value = book.publication;
+                    })
+                    .catch(error => console.error('Error fetching book:', error));
+            };
+
+            // Delete a book
+            window.deleteBook = function(id) {
+                fetch(`http://localhost:9010/book/${id}`, {
+                    method: 'DELETE'
+                })
+                    .then(() => {
+                        fetchBooks();
+                    })
+                    .catch(error => console.error('Error deleting book:', error));
+            };
+
+            // Initial fetch of books
+            fetchBooks();
+        });
+    </script>
+</body>
+</html>
